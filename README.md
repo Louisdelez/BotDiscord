@@ -146,4 +146,4 @@ This starts all apps in parallel via Turborepo:
 
 ## License
 
-Private project.
+[MIT](LICENSE)
