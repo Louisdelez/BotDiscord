@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f7;
+  --bg-tertiary: #e8e8ed;
+  --bg-canvas: #e8e8ed;
+  --text-primary: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --danger: #ff3b30;
+  --success: #34c759;
+  --warning: #ff9500;
+  --border: #d2d2d7;
+  --card-bg: #ffffff;
+  --sidebar-bg: #f5f5f7;
+  --shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 40px rgba(0,0,0,0.08), 0 2px 12px rgba(0,0,0,0.04);
+}
+
+.dark {
+  --bg-primary: #000000;
+  --bg-secondary: #1c1c1e;
+  --bg-tertiary: #2c2c2e;
+  --bg-canvas: #000000;
+  --text-primary: #f5f5f7;
+  --text-secondary: #98989d;
+  --accent: #2997ff;
+  --accent-hover: #409cff;
+  --danger: #ff453a;
+  --success: #30d158;
+  --warning: #ff9f0a;
+  --border: #38383a;
+  --card-bg: #1c1c1e;
+  --sidebar-bg: #1c1c1e;
+  --shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 8px 40px rgba(0,0,0,0.3);
+}
+
+html, body {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}

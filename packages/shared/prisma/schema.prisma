@@ -1,0 +1,785 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(cuid())
+  discordId        String   @unique
+  username         String
+  avatar           String?
+  accessToken      String?
+  refreshToken     String?
+  tokenExpiresAt   DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  guildMembers     GuildMember[]
+  reminders        Reminder[]
+  keywordAlerts    KeywordAlert[]
+}
+
+model Guild {
+  id        String   @id @default(cuid())
+  discordId String   @unique
+  name      String
+  icon      String?
+  ownerId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members        GuildMember[]
+  moderationLogs ModerationLog[]
+  xpConfig       XPConfig?
+  aiConfig       AIConfig?
+  faqEntries     FAQEntry[]
+  dailyStats     DailyStat[]
+  roleRewards    RoleReward[]
+  config         GuildConfig?
+  reminders      Reminder[]
+  reactionRoles  ReactionRole[]
+  polls          Poll[]
+  quotes         Quote[]
+  confessions    Confession[]
+  suggestions    Suggestion[]
+  pets           Pet[]
+  adventures     Adventure[]
+  quizQuestions  QuizQuestion[]
+  rpgCharacters  RPGCharacter[]
+  dailyRecaps    DailyRecap[]
+  musicConfig    MusicConfig?
+  onboardingConfig OnboardingConfig?
+  badges         Badge[]
+  trendingTopics TrendingTopic[]
+  serverMemories ServerMemory[]
+  playlists      Playlist[]
+  cryptoAlerts   CryptoAlert[]
+  eventTemplates EventTemplate[]
+  creatures      Creature[]
+  collectedCreatures CollectedCreature[]
+  creatureSpawns CreatureSpawn[]
+  starboardEntries StarboardEntry[]
+}
+
+model GuildConfig {
+  id      String @id @default(cuid())
+  guildId String @unique
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  modEnabled     Boolean @default(true)
+  xpEnabled      Boolean @default(true)
+  aiEnabled      Boolean @default(true)
+  welcomeEnabled Boolean @default(false)
+  gamesEnabled   Boolean @default(false)
+  musicEnabled   Boolean @default(false)
+  pollsEnabled   Boolean @default(false)
+  confessionsEnabled Boolean @default(false)
+  creaturesEnabled   Boolean @default(false)
+
+  welcomeChannelId String?
+  welcomeMessage   String?
+  logChannelId     String?
+  modLogChannelId  String?
+  confessionChannelId String?
+  quotesChannelId    String?
+  suggestionsChannelId String?
+  recapChannelId     String?
+
+  automodEnabled      Boolean @default(false)
+  automodToxicityThreshold Float @default(0.7)
+  automodSpamEnabled  Boolean @default(false)
+  automodLinksEnabled  Boolean @default(false)
+  automodSarcasmDetection Boolean @default(false)
+  automodSubtleHarassment Boolean @default(false)
+
+  // GitHub Integration
+  githubToken    String?
+  githubRepo     String?
+  githubEnabled  Boolean @default(false)
+
+  // Trello Integration
+  trelloToken    String?
+  trelloBoardId  String?
+  trelloEnabled  Boolean @default(false)
+
+  // Linear Integration
+  linearApiKey   String?
+  linearTeamId   String?
+  linearEnabled  Boolean @default(false)
+
+  // Jira Integration
+  jiraUrl        String?
+  jiraEmail      String?
+  jiraToken      String?
+  jiraProject    String?
+  jiraEnabled    Boolean @default(false)
+
+  // Auto-export suggestions
+  autoExportEnabled   Boolean @default(false)
+  autoExportThreshold Int     @default(5) // upvotes needed to auto-export
+  autoExportPlatform  String  @default("github") // github, trello, linear, jira
+
+  // Creatures
+  creatureSpawnRate Int @default(50)
+
+  // Welcome embed customization
+  welcomeUseEmbed   Boolean @default(false)
+  welcomeEmbedColor String? // hex color
+  welcomeImageUrl   String?
+  welcomeBannerUrl  String?
+
+  // Confession moderation
+  confessionModerationEnabled Boolean @default(false)
+  confessionModChannelId      String?
+
+  // Poll of the Day
+  pollOfTheDayEnabled   Boolean @default(false)
+  pollOfTheDayChannelId String?
+  pollOfTheDayTime      String  @default("12:00")
+
+  // Starboard
+  starboardEnabled   Boolean @default(false)
+  starboardChannelId String?
+  starboardThreshold Int     @default(3)
+  starboardEmoji     String  @default("⭐")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GuildMember {
+  id       String @id @default(cuid())
+  userId   String
+  guildId  String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guild    Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  xp           Int    @default(0)
+  level        Int    @default(0)
+  messageCount Int    @default(0)
+  voiceMinutes Int    @default(0)
+  role         String @default("USER") // USER, MOD, ADMIN
+  bio          String?
+  profileColor String?
+
+  lastXpAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  moderatedLogs ModerationLog[] @relation("moderator")
+  targetedLogs  ModerationLog[] @relation("target")
+  pets          Pet[]
+  rpgCharacter  RPGCharacter?
+  badgeAwards   BadgeAward[]
+  collectedCreatures CollectedCreature[]
+
+  @@unique([userId, guildId])
+}
+
+model ModerationLog {
+  id          String   @id @default(cuid())
+  guildId     String
+  guild       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  action      String   // WARN, MUTE, BAN, KICK, UNMUTE, UNBAN
+  reason      String?
+  duration    Int?     // seconds, null = permanent
+
+  moderatorId String
+  moderator   GuildMember @relation("moderator", fields: [moderatorId], references: [id])
+
+  targetId    String
+  target      GuildMember @relation("target", fields: [targetId], references: [id])
+
+  aiScore     Float?
+  aiContext    String?
+  automated   Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+}
+
+model XPConfig {
+  id      String @id @default(cuid())
+  guildId String @unique
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  xpPerMessage  Int   @default(15)
+  xpCooldown    Int   @default(60) // seconds
+  multiplier    Float @default(1.0)
+
+  voiceXpEnabled  Boolean @default(false)
+  xpPerVoiceMinute Int    @default(2)
+
+  excludedChannels String[] @default([])
+  excludedRoles    String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RoleReward {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  level       Int
+  roleId      String // Discord role ID
+  roleName    String
+
+  createdAt DateTime @default(now())
+
+  @@unique([guildId, level])
+}
+
+model AIConfig {
+  id      String @id @default(cuid())
+  guildId String @unique
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  provider      String  @default("ollama")   // "ollama" | "openai"
+  openaiApiKey  String?
+  embedModel    String  @default("nomic-embed-text")
+
+  model        String  @default("llama3.2")
+  systemPrompt String  @default("Tu es un assistant utile pour ce serveur Discord.")
+  temperature  Float   @default(0.7)
+  maxTokens    Int     @default(500)
+  chatChannelId String?
+  dailyRecapEnabled Boolean @default(false)
+  dailyRecapTime    String  @default("20:00") // HH:mm format
+
+  // Autonomous Agent
+  autonomousAgentEnabled Boolean @default(false)
+  agentChannelId         String?
+  agentAnalysisInterval  Int     @default(60)
+
+  // Tone Learning
+  toneLearningEnabled Boolean @default(false)
+
+  // Voice AI
+  voiceAiEnabled   Boolean @default(false)
+  voiceAiChannelId String?
+  ttsLanguage      String  @default("fr")
+  sttEnabled       Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FAQEntry {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  question  String
+  answer    String
+  embedding Float[] @default([])
+  tags      String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DailyStat {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  date          DateTime @db.Date
+  messageCount  Int      @default(0)
+  memberCount   Int      @default(0)
+  joinCount     Int      @default(0)
+  leaveCount    Int      @default(0)
+  modActions    Int      @default(0)
+  activeMembers Int      @default(0)
+  voiceMinutes  Int      @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([guildId, date])
+}
+
+// ============= NEW MODELS =============
+
+model Reminder {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  channelId String
+  message   String
+  remindAt  DateTime
+  recurring String?  // null, "daily", "weekly", "monthly"
+  completed Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+}
+
+model ReactionRole {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  messageId String
+  channelId String
+  emoji     String
+  roleId    String
+  roleName  String
+
+  createdAt DateTime @default(now())
+
+  @@unique([messageId, emoji])
+}
+
+model Poll {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  channelId  String
+  messageId  String?
+  question   String
+  options    String[]   @default([])
+  votes      Json       @default("{}")  // { "option": ["userId1", "userId2"] }
+  authorId   String
+  endsAt     DateTime?
+  closed     Boolean    @default(false)
+  anonymous  Boolean    @default(false)
+
+  createdAt DateTime @default(now())
+}
+
+model Quote {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  content    String
+  authorId   String   // Discord user ID who said it
+  authorName String
+  savedById  String   // Discord user ID who saved it
+  channelId  String?
+
+  createdAt DateTime @default(now())
+}
+
+model Confession {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  content   String
+  authorId  String?  // Discord user ID (hidden, only visible to mods)
+  messageId String?
+  modMessageId String?  // Message ID in mod review channel
+  number    Int
+  approved  Boolean @default(true)
+  reviewed  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+}
+
+model Suggestion {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  content   String
+  authorId  String   // Discord user ID
+  authorName String
+  messageId String?
+  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED, DONE
+  upvotes   String[] @default([])
+  downvotes String[] @default([])
+  response  String?
+  exported  Boolean  @default(false)
+  embedding Float[]  @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model KeywordAlert {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  guildDiscordId String
+  keyword        String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, guildDiscordId, keyword])
+}
+
+// ============= BADGES =============
+
+model Badge {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String
+  icon        String   @default("🏅")
+  condition   String   // messages_100, level_10, voice_hours_5, quiz_first_win, etc.
+  threshold   Int      @default(1)
+
+  awards BadgeAward[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([guildId, name])
+}
+
+model BadgeAward {
+  id       String @id @default(cuid())
+  badgeId  String
+  badge    Badge  @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  memberId String
+  member   GuildMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  awardedAt DateTime @default(now())
+
+  @@unique([badgeId, memberId])
+}
+
+// ============= AI AGENT =============
+
+model TrendingTopic {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  topic        String
+  summary      String
+  research     String?
+  messageCount Int     @default(0)
+  detectedAt   DateTime @default(now())
+}
+
+model ServerMemory {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  type       String   // inside_joke, meme, catchphrase
+  content    String
+  embedding  Float[]  @default([])
+  frequency  Int      @default(1)
+  lastSeenAt DateTime @default(now())
+}
+
+// ============= GAMES =============
+
+model Pet {
+  id       String @id @default(cuid())
+  guildId  String
+  guild    Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  memberId String
+  member   GuildMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  name       String
+  species    String    // cat, dog, dragon, phoenix, wolf, rabbit
+  level      Int       @default(1)
+  xp         Int       @default(0)
+  hunger     Int       @default(100) // 0-100
+  happiness  Int       @default(100) // 0-100
+  energy     Int       @default(100) // 0-100
+  wins       Int       @default(0)
+  losses     Int       @default(0)
+
+  lastFedAt    DateTime?
+  lastPlayedAt DateTime?
+  lastTrainedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Adventure {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  channelId  String
+  messageId  String?
+  title      String
+  story      String
+  choices    String[]  @default([])
+  votes      Json      @default("{}")  // { "choiceIndex": ["userId1"] }
+  step       Int       @default(1)
+  maxSteps   Int       @default(10)
+  active     Boolean   @default(true)
+  authorId   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model QuizQuestion {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  category     String
+  question     String
+  options      String[]  @default([])
+  correctIndex Int
+  difficulty   String    @default("medium") // easy, medium, hard
+
+  createdAt DateTime @default(now())
+}
+
+model RPGCharacter {
+  id       String @id @default(cuid())
+  guildId  String
+  guild    Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  memberId String @unique
+  member   GuildMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  name       String
+  className  String    // warrior, mage, rogue, healer
+  level      Int       @default(1)
+  xp         Int       @default(0)
+  hp         Int       @default(100)
+  maxHp      Int       @default(100)
+  attack     Int       @default(10)
+  defense    Int       @default(5)
+  gold       Int       @default(0)
+  inventory  String[]  @default([])
+
+  lastAdventureAt DateTime?
+  lastDailyAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============= DAILY RECAP =============
+
+model DailyRecap {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  date    DateTime @db.Date
+  summary String
+  topics  String[] @default([])
+  messageCount Int @default(0)
+  activeUsers  Int @default(0)
+  highlights   String[] @default([])
+
+  createdAt DateTime @default(now())
+
+  @@unique([guildId, date])
+}
+
+// ============= MUSIC =============
+
+model MusicConfig {
+  id      String @id @default(cuid())
+  guildId String @unique
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  defaultVolume Int     @default(50)
+  maxQueueSize  Int     @default(100)
+  djRoleId      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Playlist {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  name          String
+  authorId      String
+  isPublic      Boolean  @default(true)
+  collaborators String[] @default([])
+
+  tracks PlaylistTrack[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([guildId, name])
+}
+
+model PlaylistTrack {
+  id         String @id @default(cuid())
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+
+  title    String
+  url      String
+  duration String?
+  addedBy  String
+  position Int
+
+  createdAt DateTime @default(now())
+}
+
+// ============= CRYPTO =============
+
+model CryptoAlert {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  userId      String
+  channelId   String
+  symbol      String
+  targetPrice Float
+  direction   String  // above, below
+  triggered   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+}
+
+// ============= ONBOARDING =============
+
+model OnboardingConfig {
+  id      String @id @default(cuid())
+  guildId String @unique
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  enabled        Boolean  @default(false)
+  welcomeDmEnabled Boolean @default(false)
+  welcomeDmMessage String?
+  roles          Json     @default("[]")  // [{ "emoji": "🎮", "roleId": "...", "label": "Gaming" }]
+  questions      Json     @default("[]")  // [{ "question": "...", "options": [...] }]
+
+  // Interest-based roles
+  interestBasedRoles Boolean @default(false)
+  interestCategories Json    @default("[]")
+  followUpEnabled    Boolean @default(false)
+  followUpDelay      Int     @default(24) // hours
+  followUpMessage    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============= EVENT TEMPLATES =============
+
+model EventTemplate {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  duration    Int?     // minutes
+  channelId   String?
+  recurring   Boolean @default(false)
+  dayOfWeek   Int?    // 0-6
+  time        String? // HH:mm
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============= STARBOARD =============
+
+model StarboardEntry {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  originalMessageId String @unique
+  originalChannelId String
+  starboardMessageId String?
+  authorId           String
+  content            String?
+  attachmentUrl      String?
+  starCount          Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============= CREATURES =============
+
+model Creature {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  name    String
+  emoji   String
+  rarity  String  // common, uncommon, rare, epic, legendary
+  baseHp  Int     @default(50)
+  baseAtk Int     @default(10)
+  baseDef Int     @default(5)
+  element String  @default("neutral") // fire, water, earth, air, neutral
+
+  createdAt DateTime @default(now())
+
+  @@unique([guildId, name])
+}
+
+model CollectedCreature {
+  id       String @id @default(cuid())
+  guildId  String
+  guild    Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  memberId String
+  member   GuildMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  creatureName String
+  nickname     String?
+  level        Int     @default(1)
+  xp           Int     @default(0)
+  hp           Int     @default(50)
+  attack       Int     @default(10)
+  defense      Int     @default(5)
+  rarity       String
+  element      String  @default("neutral")
+  shiny        Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CreatureSpawn {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  channelId    String
+  messageId    String?
+  creatureName String
+  rarity       String
+  active       Boolean  @default(true)
+  expiresAt    DateTime
+
+  createdAt DateTime @default(now())
+}
+
+// ============= SERVER SETUP TEMPLATES =============
+
+model SetupTemplate {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  icon          String   @default("ClipboardList")
+  tags          String[] @default([])
+  roles         Json     @default("[]")
+  categories    Json     @default("[]")
+  authorId      String
+  authorName    String
+  sourceGuildId String?
+  isPublic      Boolean  @default(false)
+  uses          Int      @default(0)
+  likes         String[] @default([])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

@@ -1,0 +1,22 @@
+{
+  "name": "bot",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "deploy-commands": "node src/deploy-commands.js"
+  },
+  "dependencies": {
+    "@discordjs/opus": "^0.10.0",
+    "@discordjs/voice": "^0.19.0",
+    "discord.js": "^14.16.0",
+    "dotenv": "^16.4.0",
+    "google-tts-api": "^2.0.2",
+    "i18n": "workspace:*",
+    "ioredis": "^5.4.0",
+    "node-cron": "^4.2.1",
+    "play-dl": "^1.9.7",
+    "shared": "workspace:*",
+    "sharp": "^0.34.5"
+  }
+}
